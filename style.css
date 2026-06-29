@@ -1,0 +1,118 @@
+body {
+  margin: 0;
+  font-family: "Courier New", monospace;
+  background: black;
+  color: #00ff66;
+  overflow: hidden;
+}
+
+.container {
+  text-align: center;
+  padding-top: 40px;
+}
+
+h1 {
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.glitch {
+  position: relative;
+  color: #00ff66;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.glitch::before {
+  color: #ff00ff;
+  animation: glitch 2s infinite;
+}
+
+.glitch::after {
+  color: #00ffff;
+  animation: glitch 1.5s infinite;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(2px, -2px); }
+  60% { transform: translate(-1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+  100% { transform: translate(0); }
+}
+
+.box {
+  border: 1px solid #00ff66;
+  padding: 20px;
+  width: 300px;
+  margin: auto;
+  box-shadow: 0 0 10px #00ff66;
+}
+
+input {
+  display: block;
+  width: 90%;
+  margin: 10px auto;
+  padding: 8px;
+  background: black;
+  border: 1px solid #00ff66;
+  color: #00ff66;
+}
+
+button {
+  background: black;
+  border: 1px solid #00ff66;
+  color: #00ff66;
+  padding: 10px;
+  cursor: pointer;
+  width: 95%;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: #00ff66;
+  color: black;
+}
+
+.hidden {
+  display: none;
+}
+
+.online {
+  color: #00ff66;
+  font-weight: bold;
+}
+
+.note {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 10px;
+}
+
+.scanline {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,255,102,0.05),
+    rgba(0,255,102,0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  animation: move 6s linear infinite;
+}
+
+@keyframes move {
+  from { transform: translateY(0); }
+  to { transform: translateY(20px); }
+}

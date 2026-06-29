@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>System Access Terminal</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <div class="scanline"></div>
+
+  <div class="container">
+
+    <h1 class="glitch" data-text="SYSTEM ACCESS TERMINAL - ATTENDANCE LOG">
+      SYSTEM ACCESS TERMINAL - ATTENDANCE LOG
+    </h1>
+
+    <div id="loginBox" class="box">
+      <h2>> LOGIN MODULE</h2>
+
+      <input type="text" id="username" placeholder="Enter Username" />
+      <input type="password" id="password" placeholder="Enter Password" />
+
+      <button onclick="login()">MASUK</button>
+
+      <p class="note">* Sistem ini hanya simulasi absensi frontend</p>
+    </div>
+
+    <div id="dashboard" class="box hidden">
+      <h2>> DASHBOARD ABSENSI</h2>
+
+      <p id="welcome"></p>
+      <p id="loginTime"></p>
+      <p>Status: <span class="online">HADIR</span></p>
+
+      <button onclick="logout()">ABSEN KELUAR</button>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
