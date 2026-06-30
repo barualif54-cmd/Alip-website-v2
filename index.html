@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HyperOS 3 — Simulator</title>
+<style>
+:root{
+  --accent:#ff7da8;
+  --accent2:#7da8ff;
+  --glass:rgba(255,255,255,.14);
+  --glass-strong:rgba(255,255,255,.22);
+  --border:rgba(255,255,255,.28);
+  --text:#fff;
+  --radius:28px;
+  --dock-h:96px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;}
+html,body{height:100%;background:#000;font-family:"SF Pro Display","Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;overflow:hidden;}
+button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer;}
+input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:rgba(255,255,255,.25);outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.2);}
+
+/* ===== PHONE FRAME ===== */
+.frame-wrap{height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at top,#2b1b3a,#0a0612 70%);}
+.phone{
+  position:relative;width:390px;height:844px;max-height:96vh;
+  border-radius:54px;background:#000;border:10px solid #161616;
+  box-shadow:0 0 0 2px #2c2c2c,0 30px 80px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.05);
+  overflow:hidden;
+}
+.notch{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:110px;height:30px;background:#000;border-radius:20px;z-index:9999;
+}
+.screen{position:absolute;inset:0;border-radius:44px;overflow:hidden;background:#000;}
+
+/* ===== WALLPAPER (original anime-inspired SVG illustration) ===== */
+.wallpaper{
+  position:absolute;inset:0;z-index:0;
+  background:linear-gradient(180deg,#1a1040 0%,#3a1f63 28%,#a3477f 55%,#ff8a65 78%,#ffd194 100%);
+  overflow:hidden;
+}
+.wallpaper svg{position:absolute;inset:0;width:100%;height:100%;}
+.wp-stars{position:absolute;inset:0;background-image:radial-gradient(2px 2px at 20px 40px, #fff8 50%, transparent),radial-gradient(1.5px 1.5px at 90px 120px,#fff6 50%,transparent),radial-gradient(2px 2px at 160px 60px,#fff7 50%,transparent),radial-gradient(1.5px 1.5px at 230px 180px,#fff5 50%,transparent),radial-gradient(2px 2px at 300px 90px,#fff8 50%,transparent),radial-gradient(1.5px 1.5px at 40px 220px,#fff5 50%,transparent),radial-gradient(2px 2px at 340px 260px,#fff6 50%,transparent);
+  background-repeat:repeat;background-size:380px 400px;opacity:.8;
+}
+.dimmer{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .3s;z-index:1;}
+
+/* ===== STATUS BAR ===== */
+.statusbar{
+  position:absolute;top:0;left:0;right:0;height:54px;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px 0 28px;color:#fff;font-size:15px;font-weight:600;
+  text-shadow:0 1px 6px rgba(0,0,0,.4);
+}
+.sb-icons{display:flex;align-items:center;gap:6px;}
+.sb-icons svg{display:block;}
+
+/* ===== LOCK SCREEN ===== */
+#lockscreen{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .35s;}
+#lockscreen.hidden{transform:translateY(-100%);opacity:0;pointer-events:none;}
+.lock-time{margin-top:90px;font-size:84px;font-weight:200;letter-spacing:-2px;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.4);}
+.lock-date{margin-top:2px;font-size:17px;font-weight:500;color:#fff;opacity:.9;text-shadow:0 1px 8px rgba(0,0,0,.4);}
+.lock-notifs{margin-top:26px;width:88%;display:flex;flex-direction:column;gap:8px;}
+.lock-notif{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:18px;padding:11px 14px;display:flex;gap:10px;align-items:center;color:#fff;}
+.lock-notif .ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+.lock-notif .tt{font-size:13px;font-weight:700;}
+.lock-notif .sub{font-size:12px;opacity:.85;margin-top:1px;}
+.lock-bottom{position:absolute;bottom:14px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.lock-hint{color:#fff;opacity:.85;font-size:13px;letter-spacing:.3px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.lock-hint .chev{animation:bob 1.6s infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.lock-shortcuts{position:absolute;bottom:34px;left:30px;right:30px;display:flex;justify-content:space-between;}
+.lock-sc-btn{width:48px;height:48px;border-radius:50%;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;}
+
+/* ===== HOME SCREEN ===== */
+#homescreen{position:absolute;inset:0;z-index:10;transition:transform .3s;}
+.home-widget{margin:60px auto 0;width:88%;}
+.clock-widget{text-align:left;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.45);}
+.clock-widget .big{font-size:58px;font-weight:200;line-height:1;}
+.clock-widget .small{font-size:14px;font-weight:600;opacity:.92;margin-top:4px;}
+.weather-chip{margin-top:14px;display:inline-flex;align-items:center;gap:8px;background:var(--glass);backdrop-filter:blur(16px);padding:8px 14px;border-radius:18px;border:1px solid var(--border);color:#fff;font-size:13px;font-weight:600;}
+
+.app-grid{position:absolute;left:0;right:0;top:230px;bottom:calc(var(--dock-h) + 34px);
+  display:grid;grid-template-columns:repeat(4,1fr);gap:22px 0;padding:0 18px;overflow-y:auto;align-content:start;}
+.app-grid::-webkit-scrollbar{display:none;}
+.app-icon{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+.app-icon .ico{width:58px;height:58px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:27px;box-shadow:0 6px 14px rgba(0,0,0,.28);position:relative;}
+.app-icon .badge{position:absolute;top:-4px;right:-4px;background:#ff3b30;color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:1.5px solid rgba(0,0,0,.2);}
+.app-icon .lbl{font-size:11.5px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);font-weight:500;max-width:68px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.dock{position:absolute;left:14px;right:14px;bottom:14px;height:var(--dock-h);
+  background:var(--glass);backdrop-filter:blur(22px);border:1px solid var(--border);
+  border-radius:32px;display:flex;align-items:center;justify-content:space-around;z-index:20;}
+.dock .app-icon .lbl{display:none;}
+.dock .app-icon .ico{width:54px;height:54px;}
+
+.gesture-bar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;
+  border-radius:4px;background:rgba(255,255,255,.85);z-index:9000;cursor:pointer;}
+
+/* page dots */
+.page-dots{position:absolute;bottom:128px;left:0;right:0;display:flex;justify-content:center;gap:6px;z-index:15;}
+.page-dots span{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);}
+.page-dots span.active{background:#fff;}
+
+/* ===== NOTIFICATION SHADE + CONTROL CENTER ===== */
+#shade{position:absolute;inset:0;z-index:200;transform:translateY(-100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);
+  background:linear-gradient(180deg,rgba(20,12,30,.78),rgba(20,12,30,.92) 40%, rgba(10,6,18,.96));backdrop-filter:blur(30px);}
+#shade.open{transform:translateY(0);}
+.shade-scroll{height:100%;overflow-y:auto;padding:56px 16px 30px;}
+.shade-scroll::-webkit-scrollbar{display:none;}
+.shade-row{display:flex;gap:12px;}
+.cc-col{flex:1.3;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.cc-tile{background:var(--glass-strong);border:1px solid var(--border);border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:64px;justify-content:center;transition:.2s;}
+.cc-tile.on{background:linear-gradient(135deg,var(--accent),#ffb199);color:#3a0a18;}
+.cc-tile .row{display:flex;align-items:center;gap:10px;}
+.cc-tile .ic{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none;}
+.cc-tile.on .ic{background:rgba(0,0,0,.12);}
+.cc-tile .t{font-size:12.5px;font-weight:700;color:#fff;}
+.cc-tile.on .t{color:#3a0a18;}
+.cc-tile .s{font-size:10.5px;color:#fff;opacity:.75;}
+.cc-tile.on .s{color:#3a0a18;opacity:.7;}
+
+.cc-side{width:64px;display:flex;flex-direction:column;gap:10px;}
+.brightness-card,.profile-card{background:var(--glass-strong);border:1px solid var(--border);border-radius:20px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:18px;}
+
+.sliders{margin-top:12px;display:flex;flex-direction:column;gap:14px;background:var(--glass-strong);border:1px solid var(--border);border-radius:20px;padding:14px 16px;}
+.slider-row{display:flex;align-items:center;gap:12px;color:#fff;}
+.slider-row span{font-size:16px;width:20px;}
+.slider-row input{flex:1;}
+
+.notif-list{margin-top:16px;display:flex;flex-direction:column;gap:10px;}
+.notif-card{background:var(--glass-strong);border:1px solid var(--border);border-radius:18px;padding:12px 14px;color:#fff;display:flex;gap:10px;}
+.notif-card .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none;}
+.notif-card .body{flex:1;}
+.notif-card .tt{font-size:13px;font-weight:700;display:flex;justify-content:space-between;}
+.notif-card .tt .time{font-weight:500;opacity:.6;font-size:11px;}
+.notif-card .sub{font-size:12px;opacity:.85;margin-top:2px;line-height:1.4;}
+.notif-empty{text-align:center;color:#fff;opacity:.5;font-size:13px;margin-top:30px;}
+.clear-btn{display:block;margin:14px auto 0;background:var(--glass-strong);border:1px solid var(--border);color:#fff;font-size:12px;font-weight:700;padding:8px 18px;border-radius:14px;}
+
+/* ===== APP DRAWER ===== */
+#drawer{position:absolute;inset:0;z-index:150;background:rgba(10,6,18,.88);backdrop-filter:blur(26px);
+  transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1);}
+#drawer.open{transform:translateY(0);}
+.drawer-search{margin:56px 16px 10px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:8px;color:#fff;opacity:.8;font-size:14px;}
+.drawer-grid{position:absolute;top:118px;bottom:90px;left:0;right:0;overflow-y:auto;padding:6px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px 0;}
+.drawer-grid::-webkit-scrollbar{display:none;}
+
+/* ===== APP WINDOWS ===== */
+.app-win{position:absolute;inset:0;z-index:300;background:#121018;transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;}
+.app-win.open{transform:translateY(0);}
+.app-top{padding:54px 18px 14px;display:flex;align-items:center;gap:12px;background:#1a1722;flex:none;}
+.app-top .back{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}
+.app-top .title{font-size:18px;font-weight:700;color:#fff;flex:1;}
+.app-body{flex:1;overflow-y:auto;padding:16px 18px 40px;color:#fff;}
+.app-body::-webkit-scrollbar{display:none;}
+
+/* ===== RECENTS ===== */
+#recents{position:absolute;inset:0;z-index:250;background:#0c0a12;transform:translateY(100%);transition:transform .3s;display:flex;flex-direction:column;}
+#recents.open{transform:translateY(0);}
+.recents-scroll{flex:1;display:flex;align-items:center;gap:16px;overflow-x:auto;padding:80px 24px 60px;}
+.recents-scroll::-webkit-scrollbar{display:none;}
+.rcard{flex:none;width:230px;height:430px;border-radius:26px;overflow:hidden;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);}
+.rcard .rhead{position:absolute;top:0;left:0;right:0;padding:10px 12px;display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);z-index:2;}
+.rcard .rhead .ic{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.rcard .rhead .nm{color:#fff;font-size:12px;font-weight:700;}
+.rcard .rbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:60px;}
+.recents-empty{margin:auto;color:#fff;opacity:.5;font-size:14px;}
+
+/* generic UI bits used inside apps */
+.card{background:#1d1a26;border-radius:18px;padding:14px;margin-bottom:12px;}
+.row-between{display:flex;align-items:center;justify-content:space-between;}
+.btn{background:var(--accent);color:#3a0a18;font-weight:700;padding:10px 16px;border-radius:14px;font-size:14px;text-align:center;}
+.toggle{width:46px;height:27px;border-radius:14px;background:rgba(255,255,255,.18);position:relative;transition:.2s;flex:none;}
+.toggle.on{background:linear-gradient(135deg,var(--accent),var(--accent2));}
+.toggle::after{content:'';position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s;}
+.toggle.on::after{transform:translateX(19px);}
+.list-item{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid rgba(255,255,255,.06);}
+.list-item:last-child{border-bottom:none;}
+.list-item .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none;}
+.list-item .txt{flex:1;}
+.list-item .txt .t1{font-size:14.5px;font-weight:600;}
+.list-item .txt .t2{font-size:12px;opacity:.6;margin-top:1px;}
+
+/* Calculator */
+.calc-display{text-align:right;font-size:52px;font-weight:200;color:#fff;padding:30px 14px;min-height:120px;display:flex;align-items:flex-end;justify-content:flex-end;word-break:break-all;}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 14px 20px;}
+.calc-btn{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:#2a2733;color:#fff;}
+.calc-btn.op{background:var(--accent);color:#3a0a18;}
+.calc-btn.fn{background:#46414f;}
+
+/* gallery */
+.gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.gallery-grid .g{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;}
+
+/* music player */
+.music-cover{width:100%;aspect-ratio:1;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:80px;margin-bottom:18px;}
+.music-progress{height:4px;background:rgba(255,255,255,.18);border-radius:4px;margin:18px 0 8px;position:relative;}
+.music-progress .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px;width:35%;}
+.music-controls{display:flex;align-items:center;justify-content:center;gap:30px;font-size:30px;margin-top:14px;}
+
+/* settings sections */
+.sec-title{font-size:12px;font-weight:700;opacity:.5;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.5px;}
+
+.toast{position:absolute;bottom:120px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,28,38,.95);color:#fff;padding:10px 18px;border-radius:14px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:.25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:0;}
+</style>
+</head>
+<body>
+<div class="frame-wrap">
+<div class="phone">
+  <div class="notch"></div>
+  <div class="screen">
+
+    <!-- WALLPAPER -->
+    <div class="wallpaper" id="wallpaper">
+      <svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice">
+        <!-- moon -->
+        <circle cx="300" cy="120" r="46" fill="#fff7e0" opacity="0.95"/>
+        <circle cx="300" cy="120" r="46" fill="url(#moonglow)"/>
+        <defs>
+          <radialGradient id="moonglow" cx="50%" cy="50%" r="50%">
+            <stop offset="60%" stop-color="#fff7e0" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#ffd9a0" stop-opacity="0.25"/>
+          </radialGradient>
+          <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5a3a7a"/>
+            <stop offset="100%" stop-color="#321c4a"/>
+          </linearGradient>
+          <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2a1638"/>
+            <stop offset="100%" stop-color="#160a22"/>
+          </linearGradient>
+        </defs>
+        <!-- clouds -->
+        <ellipse cx="80" cy="180" rx="70" ry="14" fill="#ffffff" opacity="0.12"/>
+        <ellipse cx="220" cy="230" rx="100" ry="16" fill="#ffffff" opacity="0.1"/>
+        <!-- far hills -->
+        <path d="M0,560 Q90,500 195,545 T390,520 L390,844 L0,844 Z" fill="url(#hill1)" opacity="0.85"/>
+        <!-- near hills -->
+        <path d="M0,640 Q120,580 220,630 T390,600 L390,844 L0,844 Z" fill="url(#hill2)"/>
+        <!-- anime girl silhouette (original abstract design) -->
+        <g transform="translate(195,560)">
+          <path d="M-46,284 C-46,170 -34,120 0,120 C34,120 46,170 46,284 Z" fill="#1b0f29"/>
+          <circle cx="0" cy="78" r="40" fill="#1b0f29"/>
+          <path d="M-40,70 C-46,20 -20,-22 0,-22 C26,-22 50,8 44,62 C70,40 64,-6 40,-30 C18,-52 -22,-50 -40,-26 C-58,-2 -56,40 -40,70Z" fill="#150c20"/>
+          <path d="M-18,118 C-30,150 -28,210 -10,250" stroke="#ff9bb0" stroke-width="3" opacity="0.55" fill="none"/>
+          <path d="M20,118 C34,150 30,215 12,255" stroke="#9bbcff" stroke-width="3" opacity="0.5" fill="none"/>
+        </g>
+        <!-- fireflies / sparkles -->
+        <circle cx="60" cy="420" r="2.4" fill="#ffe2b0" opacity="0.8"/>
+        <circle cx="320" cy="480" r="2" fill="#ffe2b0" opacity="0.7"/>
+        <circle cx="350" cy="380" r="1.6" fill="#ffe2b0" opacity="0.6"/>
+        <circle cx="40" cy="340" r="1.8" fill="#ffe2b0" opacity="0.7"/>
+      </svg>
+      <div class="wp-stars"></div>
+    </div>
+    <div class="dimmer" id="dimmer"></div>
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <div id="sb-time">9:41</div>
+      <div class="sb-icons">
+        <span id="sb-dnd" style="display:none">🌙</span>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="3" width="3" height="9" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><path d="M8 9.5a1.4 1.4 0 100 2.8 1.4 1.4 0 000-2.8zM4.6 6.6a4.8 4.8 0 016.8 0l-1.3 1.3a3 3 0 00-4.2 0L4.6 6.6zM2 4l1.3 1.3a8.4 8.4 0 0111.4 0L16 4a10.6 10.6 0 00-14 0z"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="#fff" stroke-width="1"/><rect x="2.5" y="2.5" width="14" height="7" rx="1.3" fill="#fff" id="battery-fill"/><rect x="22" y="4" width="2" height="4" rx="1" fill="#fff"/></svg>
+      </div>
+    </div>
+
+    <!-- LOCK SCREEN -->
+    <div id="lockscreen">
+      <div class="lock-time" id="lock-time">9:41</div>
+      <div class="lock-date" id="lock-date">Selasa, 30 Juni</div>
+      <div class="lock-notifs" id="lock-notifs"></div>
+      <div class="lock-shortcuts">
+        <button class="lock-sc-btn" onclick="toast('Senter dinyalakan')">🔦</button>
+        <button class="lock-sc-btn" onclick="openApp('camera')">📷</button>
+      </div>
+      <div class="lock-bottom">
+        <div class="lock-hint"><span>Geser ke atas untuk membuka</span><span class="chev">⌃</span></div>
+      </div>
+    </div>
+
+    <!-- HOME SCREEN -->
+    <div id="homescreen">
+      <div class="home-widget clock-widget">
+        <div class="big" id="home-time">9:41</div>
+        <div class="small" id="home-date">Selasa, 30 Juni · Cerah Berawan</div>
+        <div class="weather-chip">☀️ 29°C — Jakarta</div>
+      </div>
+      <div class="app-grid" id="home-grid"></div>
+      <div class="page-dots"><span class="active"></span><span></span></div>
+      <div class="dock" id="dock"></div>
+    </div>
+    <div class="gesture-bar" id="gesture-bar"></div>
+
+    <!-- NOTIFICATION SHADE / CONTROL CENTER -->
+    <div id="shade">
+      <div class="shade-scroll">
+        <div class="shade-row">
+          <div class="cc-col" id="cc-tiles"></div>
+          <div class="cc-side">
+            <div class="brightness-card">🔆<input type="range" id="brightness-slider" min="10" max="100" value="80" style="writing-mode:vertical-lr;direction:rtl;width:6px;height:70px;"></div>
+            <div class="profile-card" onclick="toast('Profil: HyperOS')">😎</div>
+          </div>
+        </div>
+        <div class="sliders">
+          <div class="slider-row"><span>🔉</span><input type="range" id="volume-slider" min="0" max="100" value="60"></div>
+        </div>
+        <div class="row-between" style="margin-top:18px;">
+          <div style="font-size:13px;font-weight:700;opacity:.8;">Notifikasi</div>
+          <button class="clear-btn" onclick="clearNotifs()" style="margin:0;">Hapus semua</button>
+        </div>
+        <div class="notif-list" id="notif-list"></div>
+      </div>
+    </div>
+
+    <!-- APP DRAWER -->
+    <div id="drawer">
+      <div class="drawer-search">🔍 Cari aplikasi & lainnya</div>
+      <div class="drawer-grid" id="drawer-grid"></div>
+    </div>
+
+    <!-- RECENTS -->
+    <div id="recents">
+      <div class="recents-scroll" id="recents-scroll"></div>
+    </div>
+
+    <!-- APP WINDOWS CONTAINER -->
+    <div id="app-windows"></div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ============ STATE ============ */
+const state = {
+  locked:true,
+  shadeOpen:false,
+  drawerOpen:false,
+  recentsOpen:false,
+  openApps:[],
+  activeApp:null,
+  wifi:true, bt:false, flash:false, dnd:false, airplane:false, autoRotate:true, hotspot:false, dark:true,
+  brightness:80, volume:60,
+  notifs:[
+    {id:1, app:'Pesan', icon:'💬', color:'#34c759', title:'Sakura', body:'Jangan lupa rapat jam 3 nanti ya~', time:'09:12'},
+    {id:2, app:'HyperOS Update', icon:'⬆️', color:'#7da8ff', title:'Pembaruan tersedia', body:'HyperOS 3.0.2 siap diunduh', time:'08:30'},
+    {id:3, app:'Musik', icon:'🎵', color:'#ff7da8', title:'Sedang diputar', body:'Lo-fi Sunset — Anime Beats', time:'07:55'},
+  ],
+  notes:[
+    {id:1, title:'Ide proyek', body:'Bikin simulasi HyperOS keren buat demo.'},
+    {id:2, title:'Belanja', body:'Snack, kopi, baterai AA.'},
+  ],
+  alarms:[
+    {id:1, time:'06:30', label:'Bangun pagi', on:true},
+    {id:2, time:'21:00', label:'Skincare time', on:false},
+  ],
+  calcExpr:'0',
+};
+
+const appsList = [
+  {id:'phone', name:'Telepon', icon:'📞', color:'#34c759'},
+  {id:'messages', name:'Pesan', icon:'💬', color:'#3ddc97'},
+  {id:'camera', name:'Kamera', icon:'📷', color:'#555'},
+  {id:'gallery', name:'Galeri', icon:'🖼️', color:'#ff7da8'},
+  {id:'browser', name:'Browser', icon:'🌐', color:'#4a90ff'},
+  {id:'settings', name:'Setelan', icon:'⚙️', color:'#8a8f99'},
+  {id:'calculator', name:'Kalkulator', icon:'🧮', color:'#ff9f43'},
+  {id:'clock', name:'Jam', icon:'⏰', color:'#222'},
+  {id:'notes', name:'Catatan', icon:'📝', color:'#ffd166'},
+  {id:'calendar', name:'Kalender', icon:'📅', color:'#ff5a5f'},
+  {id:'music', name:'Musik', icon:'🎵', color:'#a06bff'},
+  {id:'weather', name:'Cuaca', icon:'⛅', color:'#3da9fc'},
+  {id:'gallery2', name:'Mi Video', icon:'🎬', color:'#ff7d7d'},
+  {id:'store', name:'App Vault', icon:'🛍️', color:'#42c2ff'},
+  {id:'files', name:'File Manager', icon:'📁', color:'#ffb347'},
+  {id:'security', name:'Keamanan', icon:'🛡️', color:'#4cd964'},
+  {id:'mail', name:'Email', icon:'✉️', color:'#5ac8fa'},
+  {id:'themes', name:'Tema', icon:'🎨', color:'#ff6fae'},
+  {id:'recorder', name:'Perekam', icon:'🎙️', color:'#8e8e93'},
+  {id:'compass', name:'Kompas', icon:'🧭', color:'#37474f'},
+];
+const dockApps = ['phone','messages','browser','camera'];
+
+/* ============ INIT ============ */
+function $(s){return document.querySelector(s);}
+function el(tag,cls,html){const e=document.createElement(tag); if(cls)e.className=cls; if(html!==undefined)e.innerHTML=html; return e;}
+
+function iconHTML(a){
+  return `<div class="ico" style="background:${a.color}">${a.icon}</div>`;
+}
+
+function buildHomeGrid(){
+  const grid = $('#home-grid'); grid.innerHTML='';
+  appsList.filter(a=>!dockApps.includes(a.id)).forEach(a=>{
+    const item = el('div','app-icon');
+    item.innerHTML = iconHTML(a) + `<div class="lbl">${a.name}</div>`;
+    item.onclick = ()=>openApp(a.id);
+    grid.appendChild(item);
+  });
+}
+function buildDock(){
+  const dock = $('#dock'); dock.innerHTML='';
+  dockApps.forEach(id=>{
+    const a = appsList.find(x=>x.id===id);
+    const item = el('div','app-icon');
+    item.innerHTML = iconHTML(a);
+    item.onclick = ()=>openApp(a.id);
+    dock.appendChild(item);
+  });
+}
+function buildDrawer(){
+  const grid = $('#drawer-grid'); grid.innerHTML='';
+  appsList.forEach(a=>{
+    const item = el('div','app-icon');
+    item.innerHTML = iconHTML(a) + `<div class="lbl">${a.name}</div>`;
+    item.onclick = ()=>{ closeDrawer(); openApp(a.id); };
+    grid.appendChild(item);
+  });
+}
+buildHomeGrid(); buildDock(); buildDrawer();
+
+/* ============ CLOCK ============ */
+function pad(n){return n<10?'0'+n:n;}
+const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function tickClock(){
+  const d = new Date();
+  const t = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  $('#sb-time').textContent=t;
+  $('#lock-time').textContent=t;
+  $('#lock-date').textContent=`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+  $('#home-time').textContent=t;
+  $('#home-date').textContent=`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} · Cerah Berawan`;
+  document.querySelectorAll('[data-live-clock]').forEach(e=>e.textContent=t+':'+pad(d.getSeconds()));
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============ LOCK / UNLOCK ============ */
+function renderLockNotifs(){
+  const wrap = $('#lock-notifs'); wrap.innerHTML='';
+  state.notifs.slice(0,3).forEach(n=>{
+    const c = el('div','lock-notif');
+    c.innerHTML = `<div class="ic" style="background:${n.color}">${n.icon}</div>
+      <div style="flex:1"><div class="tt">${n.app}</div><div class="sub">${n.title} — ${n.body}</div></div>`;
+    wrap.appendChild(c);
+  });
+}
+renderLockNotifs();
+
+function unlock(){
+  state.locked=false;
+  $('#lockscreen').classList.add('hidden');
+}
+function lockPhone(){
+  state.locked=true;
+  closeShade(); closeDrawer(); closeRecents(); closeAllApps();
+  renderLockNotifs();
+  $('#lockscreen').classList.remove('hidden');
+}
+
+/* swipe up on lockscreen to unlock */
+let lsStartY=null;
+const lockEl = $('#lockscreen');
+lockEl.addEventListener('touchstart',e=>{lsStartY=e.touches[0].clientY;});
+lockEl.addEventListener('touchend',e=>{
+  if(lsStartY===null) return;
+  const dy = lsStartY - e.changedTouches[0].clientY;
+  if(dy>70) unlock();
+  lsStartY=null;
+});
+lockEl.addEventListener('click',()=>{ /* allow click-to-unlock for desktop */ unlock(); });
+
+/* ============ GESTURES on screen for shade / drawer / recents ============ */
+const screenEl = $('.screen');
+let touchStartY=null, touchStartX=null, touchStartTarget=null;
+screenEl.addEventListener('touchstart',e=>{
+  touchStartY = e.touches[0].clientY;
+  touchStartX = e.touches[0].clientX;
+  touchStartTarget = e.target;
+},{passive:true});
+screenEl.addEventListener('touchend',e=>{
+  if(touchStartY===null) return;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if(state.locked){touchStartY=null;return;}
+  if(Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 60){
+    if(dy < -60 && !state.shadeOpen && touchStartY < 90){
+      // swipe down from top -> open shade (handled below by touchStartY check)
+    }
+    if(dy > 0 && touchStartY < 90){ openShade(); }
+    else if(dy < 0 && touchStartY > 700 && !state.activeApp){ openDrawer(); }
+  }
+  touchStartY=null;
+});
+
+/* mouse fallback (desktop testing): click status bar opens shade */
+$('.statusbar').addEventListener('click',()=>{ if(!state.locked) openShade(); });
+
+/* gesture bar: tap = home, swipe up = drawer, long press-ish = recents */
+let gestureDownY=null;
+$('#gesture-bar').addEventListener('click',()=>{ goHome(); });
+$('#gesture-bar').addEventListener('touchstart',e=>{gestureDownY=e.touches[0].clientY;},{passive:true});
+$('#gesture-bar').addEventListener('touchend',e=>{
+  const dy = gestureDownY - e.changedTouches[0].clientY;
+  if(dy>40) openDrawer(); else goHome();
+  gestureDownY=null;
+});
+
+/* ============ SHADE / CONTROL CENTER ============ */
+const ccDefs = [
+  {key:'wifi', icon:'📶', t:'WiFi', s:()=>state.wifi?'Rumah_5G':'Mati'},
+  {key:'bt', icon:'🔵', t:'Bluetooth', s:()=>state.bt?'Aktif':'Mati'},
+  {key:'flash', icon:'🔦', t:'Senter', s:()=>state.flash?'Aktif':'Mati'},
+  {key:'dnd', icon:'🌙', t:'Jangan Ganggu', s:()=>state.dnd?'Aktif':'Mati'},
+  {key:'airplane', icon:'✈️', t:'Mode Pesawat', s:()=>state.airplane?'Aktif':'Mati'},
+  {key:'autoRotate', icon:'🔄', t:'Putar Otomatis', s:()=>state.autoRotate?'Aktif':'Terkunci'},
+  {key:'hotspot', icon:'📡', t:'Hotspot', s:()=>state.hotspot?'Aktif':'Mati'},
+  {key:'dark', icon:'🌗', t:'Mode Gelap', s:()=>state.dark?'Aktif':'Mati'},
+];
+function renderCC(){
+  const wrap = $('#cc-tiles'); wrap.innerHTML='';
+  ccDefs.forEach(d=>{
+    const on = state[d.key];
+    const tile = el('div','cc-tile'+(on?' on':''));
+    tile.innerHTML = `<div class="row"><div class="ic">${d.icon}</div><div><div class="t">${d.t}</div><div class="s">${d.s()}</div></div></div>`;
+    tile.onclick = ()=>{ state[d.key]=!state[d.key]; renderCC(); toast(`${d.t} ${state[d.key]?'diaktifkan':'dimatikan'}`); if(d.key==='dnd') $('#sb-dnd').style.display = state.dnd?'inline':'none'; };
+    wrap.appendChild(tile);
+  });
+}
+function renderNotifs(){
+  const wrap = $('#notif-list'); wrap.innerHTML='';
+  if(state.notifs.length===0){ wrap.innerHTML='<div class="notif-empty">Tidak ada notifikasi baru ✨</div>'; return; }
+  state.notifs.forEach(n=>{
+    const c = el('div','notif-card');
+    c.innerHTML = `<div class="ic" style="background:${n.color}">${n.icon}</div>
+      <div class="body"><div class="tt"><span>${n.app}</span><span class="time">${n.time}</span></div>
+      <div class="sub"><b>${n.title}</b><br>${n.body}</div></div>`;
+    c.onclick = ()=>{ state.notifs = state.notifs.filter(x=>x.id!==n.id); renderNotifs(); renderLockNotifs(); };
+    wrap.appendChild(c);
+  });
+  renderLockNotifs();
+}
+function clearNotifs(){ state.notifs=[]; renderNotifs(); toast('Semua notifikasi dihapus'); }
+function openShade(){ state.shadeOpen=true; $('#shade').classList.add('open'); renderCC(); renderNotifs(); }
+function closeShade(){ state.shadeOpen=false; $('#shade').classList.remove('open'); }
+/* swipe up inside shade to close */
+let shadeStartY=null;
+$('#shade').addEventListener('touchstart',e=>{shadeStartY=e.touches[0].clientY;},{passive:true});
+$('#shade').addEventListener('touchend',e=>{
+  const dy = e.changedTouches[0].clientY - shadeStartY;
+  if(dy < -60) closeShade();
+});
+$('#brightness-slider').addEventListener('input',e=>{ state.brightness=e.target.value; $('#dimmer').style.background=`rgba(0,0,0,${(100-state.brightness)/140})`; });
+$('#volume-slider').addEventListener('input',e=>{ state.volume=e.target.value; });
+
+/* ============ APP DRAWER ============ */
+function openDrawer(){ state.drawerOpen=true; $('#drawer').classList.add('open'); }
+function closeDrawer(){ state.drawerOpen=false; $('#drawer').classList.remove('open'); }
+let drawerStartY=null;
+$('#drawer').addEventListener('touchstart',e=>{drawerStartY=e.touches[0].clientY;},{passive:true});
+$('#drawer').addEventListener('touchend',e=>{
+  const dy = e.changedTouches[0].clientY - drawerStartY;
+  if(dy>60) closeDrawer();
+});
+
+/* ============ RECENTS ============ */
+function openRecents(){
+  state.recentsOpen=true;
+  const wrap = $('#recents-scroll'); wrap.innerHTML='';
+  if(state.openApps.length===0){ wrap.innerHTML='<div class="recents-empty">Tidak ada aplikasi terbaru</div>'; }
+  state.openApps.forEach(id=>{
+    const a = appsList.find(x=>x.id===id);
+    const card = el('div','rcard');
+    card.style.background = `linear-gradient(160deg, ${a.color}, #1a1722)`;
+    card.innerHTML = `<div class="rhead"><div class="ic" style="background:rgba(255,255,255,.25)">${a.icon}</div><div class="nm">${a.name}</div></div><div class="rbg">${a.icon}</div>`;
+    card.onclick = ()=>{ closeRecents(); openApp(id); };
+    wrap.appendChild(card);
+  });
+  $('#recents').classList.add('open');
+}
+function closeRecents(){ state.recentsOpen=false; $('#recents').classList.remove('open'); }
+function closeAllApps(){ document.querySelectorAll('.app-win').forEach(w=>w.classList.remove('open')); state.activeApp=null; }
+function goHome(){ closeShade(); closeDrawer(); closeRecents(); closeAllApps(); }
+
+/* ============ TOAST ============ */
+let toastTimer=null;
+function toast(msg){
+  const t = $('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ============ APP WINDOWS ============ */
+function appShell(id,title,bodyHTML){
+  const win = el('div','app-win'); win.id='win-'+id;
+  win.innerHTML = `<div class="app-top"><div class="back" onclick="goHome()">←</div><div class="title">${title}</div></div><div class="app-body">${bodyHTML}</div>`;
+  return win;
+}
+function openApp(id){
+  if(state.locked) return;
+  closeShade(); closeDrawer(); closeRecents();
+  if(!state.openApps.includes(id)) state.openApps.push(id);
+  state.activeApp = id;
+  let win = document.getElementById('win-'+id);
+  if(!win){ win = buildApp(id); $('#app-windows').appendChild(win); }
+  document.querySelectorAll('.app-win').forEach(w=>w.classList.remove('open'));
+  win.classList.add('open');
+}
+
+function buildApp(id){
+  const a = appsList.find(x=>x.id===id);
+  switch(id){
+    case 'calculator': return buildCalculator();
+    case 'clock': return buildClockApp();
+    case 'notes': return buildNotes();
+    case 'settings': return buildSettings();
+    case 'weather': return buildWeather();
+    case 'music': return buildMusic();
+    case 'gallery': case 'gallery2': return buildGallery(id);
+    case 'calendar': return buildCalendar();
+    case 'messages': return buildMessages();
+    case 'phone': return buildPhone();
+    case 'camera': return buildCamera();
+    case 'browser': return buildBrowser();
+    default: return buildGeneric(a);
+  }
+}
+
+function buildGeneric(a){
+  const win = appShell(a.id, a.name, `
+    <div style="text-align:center;padding:60px 0;">
+      <div style="font-size:64px;">${a.icon}</div>
+      <div style="margin-top:14px;font-weight:700;font-size:17px;">${a.name}</div>
+      <div style="opacity:.6;font-size:13px;margin-top:6px;">Aplikasi simulasi — fitur demo HyperOS 3</div>
+    </div>
+    <div class="card"><div class="row-between"><div>Versi</div><div style="opacity:.6">3.0.2</div></div></div>
+    <div class="card"><div class="row-between"><div>Status</div><div style="opacity:.6">Berjalan normal</div></div></div>
+  `);
+  return win;
+}
+
+/* ---- Calculator ---- */
+function buildCalculator(){
+  const win = appShell('calculator','Kalkulator', `
+    <div class="calc-display" id="calc-disp">0</div>
+    <div class="calc-grid" id="calc-grid"></div>
+  `);
+  setTimeout(()=>{
+    const keys = ['AC','÷','×','⌫','7','8','9','-','4','5','6','+','1','2','3','=','0','.'];
+    const grid = win.querySelector('#calc-grid');
+    keys.forEach(k=>{
+      const b = el('div','calc-btn'+(['÷','×','-','+','='].includes(k)?' op':(['AC','⌫'].includes(k)?' fn':'')), k);
+      if(k==='0') b.style.gridColumn='span 2';
+      b.onclick = ()=>calcPress(k);
+      grid.appendChild(b);
+    });
+  },0);
+  return win;
+}
+function calcPress(k){
+  let e = state.calcExpr;
+  if(k==='AC'){ e='0'; }
+  else if(k==='⌫'){ e = e.length>1? e.slice(0,-1) : '0'; }
+  else if(k==='='){
+    try{ e = String(Function('"use strict";return ('+e.replace(/×/g,'*').replace(/÷/g,'/')+')')()); }
+    catch(err){ e='Error'; }
+  } else {
+    const op='+-×÷'.includes(k);
+    if(e==='0' && !op) e=k;
+    else e+=k;
+  }
+  state.calcExpr=e;
+  document.getElementById('calc-disp').textContent=e;
+}
+
+/* ---- Clock app: tabs world clock / alarm / stopwatch / timer ---- */
+function buildClockApp(){
+  const win = appShell('clock','Jam', `
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div class="btn" style="flex:1" onclick="clockTab('alarm')">⏰ Alarm</div>
+      <div class="btn" style="flex:1;background:#2a2733;color:#fff" onclick="clockTab('stopwatch')">⏱️ Stopwatch</div>
+    </div>
+    <div id="clock-tab-content"></div>
+  `);
+  setTimeout(()=>clockTab('alarm'),0);
+  return win;
+}
+function clockTab(tab){
+  const c = document.querySelector('#win-clock #clock-tab-content');
+  if(!c) return;
+  if(tab==='alarm'){
+    c.innerHTML = `<div id="alarm-list"></div><div class="btn" style="margin-top:10px;text-align:center" onclick="addAlarm()">+ Tambah alarm</div>`;
+    renderAlarms();
+  } else {
+    c.innerHTML = `<div style="text-align:center;padding:30px 0;">
+      <div style="font-size:48px;font-weight:200;" data-live-clock>00:00:00</div>
+      <div style="margin-top:20px;display:flex;gap:12px;justify-content:center;">
+        <div class="btn" onclick="toast('Stopwatch dimulai')">Mulai</div>
+        <div class="btn" style="background:#2a2733;color:#fff" onclick="toast('Stopwatch direset')">Reset</div>
+      </div></div>`;
+  }
+}
+function renderAlarms(){
+  const wrap = document.querySelector('#alarm-list'); if(!wrap) return;
+  wrap.innerHTML='';
+  state.alarms.forEach(al=>{
+    const c = el('div','card');
+    c.innerHTML = `<div class="row-between"><div><div style="font-size:26px;font-weight:300;">${al.time}</div><div style="font-size:12px;opacity:.6">${al.label}</div></div><div class="toggle${al.on?' on':''}" id="al-${al.id}"></div></div>`;
+    c.querySelector('.toggle').onclick=()=>{ al.on=!al.on; renderAlarms(); };
+    wrap.appendChild(c);
+  });
+}
+function addAlarm(){
+  const t = prompt('Masukkan waktu alarm (HH:MM)','07:00');
+  if(!t) return;
+  state.alarms.push({id:Date.now(), time:t, label:'Alarm baru', on:true});
+  renderAlarms();
+  toast('Alarm ditambahkan');
+}
+
+/* ---- Notes ---- */
+function buildNotes(){
+  const win = appShell('notes','Catatan', `<div id="notes-list"></div><div class="btn" style="margin-top:10px;text-align:center" onclick="addNote()">+ Catatan baru</div>`);
+  setTimeout(renderNotes,0);
+  return win;
+}
+function renderNotes(){
+  const wrap = document.querySelector('#notes-list'); if(!wrap) return;
+  wrap.innerHTML='';
+  state.notes.forEach(n=>{
+    const c = el('div','card');
+    c.innerHTML = `<div style="font-weight:700;font-size:14.5px;">${n.title}</div><div style="font-size:13px;opacity:.7;margin-top:4px;">${n.body}</div>`;
+    c.oncontextmenu = (e)=>{e.preventDefault();};
+    c.ondblclick = ()=>{ state.notes = state.notes.filter(x=>x.id!==n.id); renderNotes(); };
+    wrap.appendChild(c);
+  });
+  const hint = el('div'); hint.style.cssText='font-size:11px;opacity:.4;text-align:center;margin-top:6px;'; hint.textContent='Klik dua kali catatan untuk menghapus';
+  wrap.appendChild(hint);
+}
+function addNote(){
+  const title = prompt('Judul catatan:'); if(!title) return;
+  const body = prompt('Isi catatan:') || '';
+  state.notes.push({id:Date.now(), title, body});
+  renderNotes(); toast('Catatan disimpan');
+}
+
+/* ---- Settings ---- */
+function buildSettings(){
+  const win = appShell('settings','Setelan', `
+    <div class="card">
+      <div class="row-between"><div style="font-weight:700;">Akun Mi</div></div>
+      <div style="opacity:.6;font-size:13px;margin-top:4px;">user@hyperos.dev — Sinkron aktif</div>
+    </div>
+    <div class="sec-title">Jaringan</div>
+    <div class="card" id="set-network"></div>
+    <div class="sec-title">Tampilan</div>
+    <div class="card" id="set-display"></div>
+    <div class="sec-title">Sistem</div>
+    <div class="card">
+      <div class="list-item"><div class="ic" style="background:#555">ℹ️</div><div class="txt"><div class="t1">Tentang Ponsel</div><div class="t2">HyperOS 3.0 · Android 17</div></div></div>
+      <div class="list-item"><div class="ic" style="background:#555">⬆️</div><div class="txt"><div class="t1">Pembaruan Sistem</div><div class="t2">Versi terbaru terpasang</div></div></div>
+    </div>
+  `);
+  setTimeout(()=>{
+    const net = win.querySelector('#set-network');
+    [['wifi','WiFi','📶'],['bt','Bluetooth','🔵'],['airplane','Mode Pesawat','✈️'],['hotspot','Hotspot','📡']].forEach(([k,t,ic])=>{
+      const r = el('div','list-item');
+      r.innerHTML = `<div class="ic" style="background:#3a3744">${ic}</div><div class="txt"><div class="t1">${t}</div></div><div class="toggle${state[k]?' on':''}"></div>`;
+      r.querySelector('.toggle').onclick=()=>{ state[k]=!state[k]; buildSettingsRefresh(); };
+      net.appendChild(r);
+    });
+    const disp = win.querySelector('#set-display');
+    [['dark','Mode Gelap','🌗'],['autoRotate','Putar Otomatis','🔄']].forEach(([k,t,ic])=>{
+      const r = el('div','list-item');
+      r.innerHTML = `<div class="ic" style="background:#3a3744">${ic}</div><div class="txt"><div class="t1">${t}</div></div><div class="toggle${state[k]?' on':''}"></div>`;
+      r.querySelector('.toggle').onclick=()=>{ state[k]=!state[k]; applyDarkMode(); buildSettingsRefresh(); };
+      disp.appendChild(r);
+    });
+    const br = el('div','list-item');
+    br.innerHTML = `<div class="ic" style="background:#3a3744">🔆</div><div class="txt"><div class="t1">Kecerahan</div></div><input type="range" min="10" max="100" value="${state.brightness}" style="width:90px" oninput="state.brightness=this.value;document.getElementById('dimmer').style.background='rgba(0,0,0,'+((100-this.value)/140)+')'">`;
+    disp.appendChild(br);
+  },0);
+  return win;
+}
+function buildSettingsRefresh(){
+  const win = document.getElementById('win-settings');
+  if(win){ win.remove(); state.openApps=state.openApps.filter(a=>a!=='settings'); openApp('settings'); }
+}
+function applyDarkMode(){ /* purely cosmetic toggle for demo */ toast('Mode gelap '+(state.dark?'aktif':'nonaktif')); }
+
+/* ---- Weather ---- */
+function buildWeather(){
+  const win = appShell('weather','Cuaca', `
+    <div style="text-align:center;padding:20px 0 10px;">
+      <div style="font-size:15px;opacity:.7;">Jakarta</div>
+      <div style="font-size:72px;font-weight:200;">29°</div>
+      <div style="opacity:.8;">Cerah Berawan · Terasa 31°</div>
+    </div>
+    <div class="card row-between"><div>Tertinggi / Terendah</div><div>32° / 24°</div></div>
+    <div class="card row-between"><div>Kelembapan</div><div>68%</div></div>
+    <div class="card row-between"><div>Angin</div><div>11 km/j</div></div>
+    <div class="sec-title">Prakiraan 5 Hari</div>
+    <div class="card">
+      ${['Sen','Sel','Rab','Kam','Jum'].map((d,i)=>`<div class="row-between" style="padding:6px 0;"><div>${d}</div><div>${28+i}° / ${22+i}°</div><div>${['☀️','⛅','🌦️','☀️','⛅'][i]}</div></div>`).join('')}
+    </div>
+  `);
+  return win;
+}
+
+/* ---- Music ---- */
+function buildMusic(){
+  const win = appShell('music','Musik', `
+    <div class="music-cover" style="background:linear-gradient(135deg,#7da8ff,#ff7da8);">🎧</div>
+    <div style="text-align:center;">
+      <div style="font-weight:700;font-size:16px;">Lo-fi Sunset</div>
+      <div style="opacity:.6;font-size:13px;">Anime Beats · Album: HyperWave</div>
+    </div>
+    <div class="music-progress"><div class="fill"></div></div>
+    <div class="row-between" style="font-size:11px;opacity:.5;"><span>1:24</span><span>3:58</span></div>
+    <div class="music-controls">
+      <span onclick="toast('Lagu sebelumnya')">⏮️</span>
+      <span id="play-btn" onclick="toggleMusic(this)">▶️</span>
+      <span onclick="toast('Lagu berikutnya')">⏭️</span>
+    </div>
+  `);
+  return win;
+}
+function toggleMusic(elm){ elm.textContent = elm.textContent==='▶️' ? '⏸️' : '▶️'; toast(elm.textContent==='⏸️'?'Memutar musik':'Dijeda'); }
+
+/* ---- Gallery ---- */
+function buildGallery(id){
+  const colors=['#ff7da8','#7da8ff','#ffd166','#a06bff','#34c759','#ff9f43','#3da9fc','#ff5a5f','#42c2ff'];
+  const icons=['🌸','🌙','⛩️','🍙','🎐','🌃','🍵','🎴','🌺'];
+  const win = appShell(id, id==='gallery'?'Galeri':'Mi Video', `<div class="gallery-grid">${colors.map((c,i)=>`<div class="g" style="background:${c}">${icons[i]}</div>`).join('')}</div>`);
+  return win;
+}
+
+/* ---- Calendar ---- */
+function buildCalendar(){
+  const today = new Date();
+  const dim = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  const firstDow = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+  let cells='';
+  for(let i=0;i<firstDow;i++) cells+='<div></div>';
+  for(let d=1; d<=dim; d++){
+    const isToday = d===today.getDate();
+    cells += `<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:10px;${isToday?'background:var(--accent);color:#3a0a18;font-weight:800;':''}">${d}</div>`;
+  }
+  const win = appShell('calendar','Kalender', `
+    <div style="font-weight:700;font-size:17px;margin-bottom:10px;">${months[today.getMonth()]} ${today.getFullYear()}</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:13px;text-align:center;opacity:.5;margin-bottom:6px;">
+      ${['M','S','S','R','K','J','S'].map(d=>`<div>${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:13px;text-align:center;">${cells}</div>
+    <div class="sec-title">Acara Hari Ini</div>
+    <div class="card row-between"><div>Rapat tim</div><div style="opacity:.6">15:00</div></div>
+    <div class="card row-between"><div>Nonton anime baru 🎬</div><div style="opacity:.6">20:00</div></div>
+  `);
+  return win;
+}
+
+/* ---- Messages ---- */
+function buildMessages(){
+  const threads = [
+    {n:'Sakura', m:'Jangan lupa rapat jam 3 nanti ya~', t:'09:12', c:'#ff7da8'},
+    {n:'Mama', m:'Udah makan belum?', t:'08:02', c:'#7da8ff'},
+    {n:'Grup Anime Club', m:'Riku: Episode baru keren banget!', t:'Kemarin', c:'#a06bff'},
+  ];
+  const win = appShell('messages','Pesan', threads.map(t=>`
+    <div class="list-item" onclick="toast('Membuka chat dengan ${t.n}')">
+      <div class="ic" style="background:${t.c}">💬</div>
+      <div class="txt"><div class="t1">${t.n}</div><div class="t2">${t.m}</div></div>
+      <div style="font-size:11px;opacity:.5;">${t.t}</div>
+    </div>`).join(''));
+  return win;
+}
+
+/* ---- Phone ---- */
+function buildPhone(){
+  const contacts = ['Sakura','Mama','Papa','Riku','Yuki','Kantor'];
+  const win = appShell('phone','Telepon', `
+    <div style="text-align:center;margin-bottom:14px;">
+      <input placeholder="Cari atau masukkan nomor" style="width:100%;background:#1d1a26;border:none;color:#fff;padding:12px 14px;border-radius:14px;font-size:14px;">
+    </div>
+    ${contacts.map(c=>`<div class="list-item" onclick="toast('Menelepon ${c}...')"><div class="ic" style="background:#34c759">👤</div><div class="txt"><div class="t1">${c}</div><div class="t2">Mobile</div></div><div style="font-size:18px;">📞</div></div>`).join('')}
+  `);
+  return win;
+}
+
+/* ---- Camera (mock viewfinder) ---- */
+function buildCamera(){
+  const win = appShell('camera','Kamera', `
+    <div style="width:100%;aspect-ratio:3/4;border-radius:20px;background:linear-gradient(160deg,#3a1f63,#ff8a65);display:flex;align-items:center;justify-content:center;font-size:50px;margin-bottom:20px;">📷</div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:30px;">
+      <div style="width:40px;height:40px;border-radius:10px;background:#2a2733;display:flex;align-items:center;justify-content:center;" onclick="toast('Beralih ke kamera depan')">🔄</div>
+      <div style="width:70px;height:70px;border-radius:50%;border:5px solid #fff;" onclick="toast('Foto diambil! 📸')"></div>
+      <div style="width:40px;height:40px;border-radius:10px;background:#2a2733;display:flex;align-items:center;justify-content:center;" onclick="openApp('gallery')">🖼️</div>
+    </div>
+  `);
+  return win;
+}
+
+/* ---- Browser (mock) ---- */
+function buildBrowser(){
+  const win = appShell('browser','Browser', `
+    <input placeholder="Cari atau ketik URL" style="width:100%;background:#1d1a26;border:none;color:#fff;padding:12px 14px;border-radius:14px;font-size:14px;margin-bottom:16px;">
+    <div class="sec-title">Pintasan</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      ${['🔍 Cari','📰 Berita','🎬 Video','🛒 Belanja'].map(s=>`<div style="text-align:center;font-size:12px;" onclick="toast('Membuka ${s}')"><div style="font-size:26px;">${s.split(' ')[0]}</div>${s.split(' ')[1]}</div>`).join('')}
+    </div>
+  `);
+  return win;
+}
+
+/* ============ INIT GREETING ============ */
+setTimeout(()=>toast('Selamat datang di HyperOS 3 ✨'), 900);
+</script>
+</body>
+</html>
