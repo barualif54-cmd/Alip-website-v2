@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>OrangeFox Recovery V5</title>
+<style>
+body{
+    margin:0;
+    background:black;
+    font-family: monospace;
+    color:#ff6a00;
+    overflow:hidden;
+}
+.boot{
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:black;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:10;
+    animation:boot 3.5s forwards;
+    animation-delay:2.5s;
+}
+@keyframes boot{to{opacity:0;visibility:hidden;}}
+.boot h1{font-size:26px;}
+.boot p{color:#999;font-size:12px;}
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    padding:10px;
+    border-bottom:1px solid #ff6a00;
+    background:#050505;
+}
+.wrapper{display:flex;height:100vh;}
+.sidebar{
+    width:28%;
+    background:#0a0a0a;
+    border-right:1px solid #222;
+    padding:10px;
+}
+.menu{
+    padding:10px;
+    border:1px solid #222;
+    margin:6px 0;
+    cursor:pointer;
+}
+.menu:hover{background:#ff6a00;color:black;}
+.content{flex:1;padding:12px;}
+.terminal{
+    background:black;
+    border:1px solid #ff6a00;
+    height:140px;
+    overflow:auto;
+    padding:8px;
+    font-size:12px;
+}
+.progressBox{
+    margin-top:10px;
+    height:16px;
+    border:1px solid #333;
+}
+.progress{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#ff6a00,#ff3c00);
+}
+button{
+    padding:8px;
+    width:100%;
+    margin-top:6px;
+    background:linear-gradient(90deg,#ff6a00,#ff3c00);
+    border:none;
+    font-weight:bold;
+}
+.table{
+    margin-top:10px;
+    border:1px solid #333;
+    padding:10px;
+    font-size:12px;
+}
+.error{
+    margin-top:10px;
+    color:red;
+    border:1px solid red;
+    padding:8px;
+    display:none;
+}
+</style>
+</head>
+<body>
+
+<div class="boot">
+<h1>ORANGEFOX RECOVERY V5</h1>
+<p>Loading kernel modules...</p>
+</div>
+
+<div class="topbar">
+<div>🔥 OrangeFox V5</div>
+<div id="status">INIT...</div>
+</div>
+
+<div class="wrapper">
+<div class="sidebar">
+<div class="menu" onclick="tab('backup')">📦 Backup</div>
+<div class="menu" onclick="tab('wipe')">🧹 Wipe</div>
+<div class="menu" onclick="tab('flash')">⚡ Flash</div>
+<div class="menu" onclick="tab('partition')">💾 Partition</div>
+<div class="menu" onclick="tab('reboot')">🔄 Reboot</div>
+</div>
+
+<div class="content">
+<div id="panel">
+<h3>OrangeFox Recovery</h3>
+<p>Select menu</p>
+</div>
+
+<div class="progressBox">
+<div class="progress" id="progress"></div>
+</div>
+
+<div class="terminal" id="terminal">> booting OrangeFox V5...</div>
+
+<div class="error" id="error">SYSTEM ERROR</div>
+</div>
+</div>
+
+<script>
+function log(t){
+let term=document.getElementById("terminal");
+term.innerHTML+="<br>> "+t;
+term.scrollTop=term.scrollHeight;
+}
+
+setTimeout(()=>{
+document.getElementById("status").innerHTML="READY";
+log("System mounted");
+},2000);
+
+function tab(t){
+let p=document.getElementById("panel");
+
+if(t=="backup"){
+p.innerHTML=`<h3>Backup</h3><button onclick="log('Backup done')">Start</button>`;
+}
+
+if(t=="wipe"){
+p.innerHTML=`<h3>Wipe</h3><button onclick="log('Cache wiped')">Cache</button><button onclick="log('Data wiped')">Data</button>`;
+}
+
+if(t=="flash"){
+p.innerHTML=`<h3>Flash</h3><button onclick="flash()">Start Flash</button>`;
+}
+
+if(t=="partition"){
+p.innerHTML=`<h3>Partition</h3><div class="table">/system mounted<br>/data mounted<br>/vendor mounted</div>`;
+}
+}
+
+function flash(){
+let p=0;
+let bar=document.getElementById("progress");
+let int=setInterval(()=>{
+p+=5;
+bar.style.width=p+"%";
+log("Flashing "+p+"%");
+if(p>=100){
+clearInterval(int);
+log("Flash complete");
+}
+},100);
+}
+</script>
+
+</body>
+</html>
