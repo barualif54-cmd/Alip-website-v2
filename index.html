@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk / Daftar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #030509;
+    --bg-deep: #01030a;
+    --panel: rgba(10, 18, 32, 0.6);
+    --line: rgba(120, 190, 255, 0.2);
+    --blue: #6fd6ff;
+    --violet: #7c5cff;
+    --text: #eaf3ff;
+    --muted: #7f92b8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; min-height: 100%;
+    background: var(--bg-deep);
+    font-family: 'Manrope', sans-serif;
+    color: var(--text);
+  }
+
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  /* ===== Latar: video + overlay ===== */
+  .bg-photo {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 42%;
+    z-index: 0;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 50% 62%, rgba(3,5,9,0.02), rgba(1,3,10,0.12) 70%),
+      linear-gradient(100deg, rgba(1,3,10,0.32) 0%, rgba(1,3,10,0.12) 42%, rgba(1,3,10,0.06) 60%, rgba(1,3,10,0.32) 100%);
+    z-index: 1;
+  }
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 180px 60px rgba(0,0,0,0.22);
+  }
+  .stage > .intro, .stage > .auth, .stage > .spark, .stage > .drift {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Bintang kelap-kelip */
+  .spark {
+    position: absolute;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: #dff2ff;
+    animation: twinkle 2.8s ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.1; transform: scale(1); }
+    50%      { opacity: 0.95; transform: scale(1.7); }
+  }
+
+  /* Serpihan debu/energi melayang perlahan ke atas, meniru materi tersedot ke horizon */
+  .drift {
+    position: absolute;
+    bottom: -10px;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #bfe8ff, rgba(111,214,255,0));
+    box-shadow: 0 0 6px rgba(111,214,255,0.9);
+    animation: driftUp linear infinite;
+    opacity: 0;
+  }
+  @keyframes driftUp {
+    0%   { opacity: 0; transform: translateY(0) translateX(0); }
+    10%  { opacity: 0.85; }
+    90%  { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(-100vh) translateX(24px); }
+  }
+
+  /* Panel kiri: sapaan */
+  .intro {
+    position: relative;
+    flex: 1.1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 56px;
+    min-width: 0;
+  }
+  .tag {
+    position: absolute;
+    right: 6%;
+    bottom: 8%;
+    writing-mode: vertical-rl;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    color: rgba(111,214,255,0.45);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--blue);
+    box-shadow: 0 0 10px 2px rgba(111,214,255,0.8);
+    animation: pulseCore 1.8s ease-in-out infinite;
+  }
+  .headline {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: clamp(30px, 4.4vw, 52px);
+    line-height: 1.15;
+    font-weight: 700;
+    margin: 0 0 16px;
+    max-width: 480px;
+  }
+  .headline span {
+    background: linear-gradient(120deg, var(--blue), var(--violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .sub {
+    color: var(--muted);
+    max-width: 420px;
+    line-height: 1.6;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  /* Panel kanan: kartu form kaca */
+  .auth {
+    position: relative;
+    width: 440px;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+  .card {
+    position: relative;
+    width: 100%;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05) 40%, rgba(120,190,255,0.07) 100%),
+      rgba(4,8,16,0.18);
+    background-blend-mode: normal;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 26px;
+    padding: 34px 32px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow:
+      0 24px 70px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      inset 0 0 40px rgba(255,255,255,0.04),
+      inset 0 -1px 0 rgba(0,0,0,0.2);
+    overflow: hidden;
+    isolation: isolate;
+  }
+  /* Saat keyboard muncul (input fokus): matikan efek berat sementara biar nggak patah-patah */
+  body.typing .card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(8,14,26,0.82) !important;
+  }
+  body.typing .card::after,
+  body.typing .spark,
+  body.typing .drift { animation-play-state: paused; }
+  /* Garis tepi kaca yang menangkap cahaya */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 26px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(111,214,255,0.15) 30%, rgba(124,92,255,0) 55%, rgba(124,92,255,0.35) 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* Kilau cair mengalir di permukaan kaca, seperti pantulan liquid glass */
+  .card::after {
+    content: "";
+    position: absolute;
+    top: -60%;
+    left: -30%;
+    width: 65%;
+    height: 220%;
+    background: linear-gradient(75deg, transparent 30%, rgba(255,255,255,0.16) 45%, rgba(255,255,255,0.28) 50%, rgba(255,255,255,0.16) 55%, transparent 70%);
+    transform: rotate(8deg) translateX(0);
+    pointer-events: none;
+    z-index: 1;
+    will-change: transform;
+    animation: glassSheen 7s ease-in-out infinite;
+  }
+  @keyframes glassSheen {
+    0%, 100% { transform: rotate(8deg) translateX(0); }
+    50% { transform: rotate(8deg) translateX(150%); }
+  }
+  .card > * { position: relative; z-index: 2; }
+
+  .tabs {
+    display: flex;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 26px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: color .2s ease, background .2s ease;
+    user-select: none;
+  }
+  .tab.active {
+    color: #04070d;
+    background: linear-gradient(120deg, var(--blue), var(--violet));
+  }
+
+  .form-title {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .form-sub {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 0 22px;
+  }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-bottom: 7px;
+    letter-spacing: 0.02em;
+  }
+  .field input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .field input::placeholder { color: #4d5b7c; }
+  .field input:focus {
+    border-color: var(--blue);
+    background: rgba(111,214,255,0.06);
+    box-shadow: 0 0 0 3px rgba(111,214,255,0.1);
+  }
+
+  .submit {
+    width: 100%;
+    border: none;
+    border-radius: 11px;
+    padding: 13px 0;
+    font-size: 14.5px;
+    font-weight: 700;
+    font-family: inherit;
+    color: #04070d;
+    background: linear-gradient(120deg, var(--blue), var(--violet));
+    cursor: pointer;
+    margin-top: 6px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .submit:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(111,214,255,0.25); }
+  .submit:active { transform: translateY(0); }
+  .submit:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+  .submit:disabled { cursor: not-allowed; opacity: 0.95; }
+  .submit { position: relative; overflow: hidden; }
+  .submit .btn-label {
+    display: inline-block;
+    transition: opacity .25s ease;
+  }
+  .submit.loading .btn-label { opacity: 0.55; }
+  .progress-track {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%; height: 3px;
+    background: rgba(4,7,13,0.18);
+  }
+  .progress-fill {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 0%; height: 100%;
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.85), 0 0 2px rgba(255,255,255,0.9);
+    transition: width 1.1s cubic-bezier(.4, 0, .2, 1);
+  }
+  .field input:disabled { opacity: 0.6; }
+
+  .switch-line {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 18px;
+  }
+  .switch-line a {
+    color: var(--blue);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .switch-line a:hover { text-decoration: underline; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 860px) {
+    .stage { flex-direction: column; }
+    .intro { padding: 32px 24px 24px; min-height: 220px; justify-content: center; }
+    .tag { display: none; }
+    .auth { width: 100%; padding: 20px 20px 40px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spark, .drift, .bg-photo, .eyebrow::before { animation: none; }
+  }
+
+  /* ===== Loading overlay: mini black hole (accretion disk) ===== */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 34px;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 44%, rgba(111,214,255,0.10), transparent 65%),
+      rgba(1,3,10,0.97);
+    opacity: 0;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity .5s ease;
+  }
+  .loading-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .bh-loader {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    transform: scale(.85) rotate(0deg);
+    opacity: 0;
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  .loading-overlay.active .bh-loader {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  /* piringan akresi berputar, meniru materi yang melengkung mengelilingi horizon */
+  .bh-disk {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+      transparent 0deg,
+      rgba(111,214,255,0.15) 40deg,
+      rgba(111,214,255,0.95) 95deg,
+      #ffffff 118deg,
+      rgba(124,92,255,0.9) 140deg,
+      rgba(124,92,255,0.15) 200deg,
+      transparent 260deg,
+      transparent 360deg);
+    -webkit-mask: radial-gradient(circle, transparent 46%, #000 48%, #000 100%);
+    mask: radial-gradient(circle, transparent 46%, #000 48%, #000 100%);
+    filter: drop-shadow(0 0 14px rgba(111,214,255,0.5));
+    animation: bhSpin 1.6s linear infinite;
+  }
+  .bh-disk.d2 {
+    inset: 14px;
+    opacity: 0.55;
+    filter: drop-shadow(0 0 8px rgba(124,92,255,0.5));
+    animation: bhSpin 2.6s linear infinite reverse;
+  }
+  @keyframes bhSpin { to { transform: rotate(360deg); } }
+
+  /* cakrawala peristiwa: inti gelap pekat */
+  .bh-core {
+    position: absolute;
+    inset: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 38%, #0c1526 0%, #01030a 62%, #000 100%);
+    box-shadow:
+      0 0 0 1px rgba(111,214,255,0.15),
+      0 0 24px 6px rgba(0,0,0,0.9) inset,
+      0 0 30px 4px rgba(111,214,255,0.25);
+    animation: bhPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes bhPulse {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(111,214,255,0.15), 0 0 24px 6px rgba(0,0,0,0.9) inset, 0 0 26px 3px rgba(111,214,255,0.2); }
+    50%      { box-shadow: 0 0 0 1px rgba(111,214,255,0.3), 0 0 24px 6px rgba(0,0,0,0.9) inset, 0 0 40px 8px rgba(111,214,255,0.4); }
+  }
+
+  .loading-copy {
+    text-align: center;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .5s ease .15s, transform .5s ease .15s;
+  }
+  .loading-overlay.active .loading-copy {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .loading-title {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    background: linear-gradient(90deg, var(--blue), #ffffff, var(--violet), var(--blue));
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 2.4s linear infinite;
+  }
+  @keyframes shimmer {
+    to { background-position: -300% center; }
+  }
+  .loading-sub {
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .loading-sub .dots span {
+    display: inline-block;
+    animation: dotBounce 1.4s ease-in-out infinite;
+    opacity: 0.3;
+  }
+  .loading-sub .dots span:nth-child(2) { animation-delay: .18s; }
+  .loading-sub .dots span:nth-child(3) { animation-delay: .36s; }
+  @keyframes dotBounce {
+    0%, 100% { opacity: 0.25; transform: translateY(0); }
+    50%      { opacity: 1; transform: translateY(-3px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bh-disk, .bh-core, .loading-title, .loading-sub .dots span { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <video class="bg-photo" id="bgVideo" src="assets/bg.mp4" poster="assets/bg-poster.jpg" preload="auto" autoplay loop muted playsinline></video>
+  <div class="overlay"></div>
+  <div class="vignette"></div>
+
+  <div class="intro">
+    <div class="tag">Event Horizon</div>
+    <div class="eyebrow">Selamat datang</div>
+    <h1 class="headline">Masuk ke <span>semestamu</span> sendiri</h1>
+    <p class="sub">Satu akun buat nyimpen semua progres, project, dan pengaturan kamu. Aman, cepat, dan gampang diakses kapan aja.</p>
+  </div>
+
+  <div class="auth">
+    <div class="card">
+      <h2 class="form-title">Masuk</h2>
+      <p class="form-sub">Cukup pakai nama kamu buat masuk.</p>
+      <form id="loginForm" onsubmit="return handleLoginSubmit(event)">
+        <div class="field">
+          <label for="li-name">Nama</label>
+          <input id="li-name" type="text" placeholder="Nama kamu" required>
+        </div>
+        <button class="submit" id="submitBtn" type="submit"><span class="btn-label">Masuk</span></button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="bh-loader">
+    <div class="bh-disk"></div>
+    <div class="bh-disk d2"></div>
+    <div class="bh-core"></div>
+  </div>
+  <div class="loading-copy">
+    <div class="loading-title">Vibe Coding</div>
+    <div class="loading-sub">Menyiapkan ruangmu<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+  </div>
+</div>
+
+<script>
+  // Bintang kelap-kelip di background
+  const stage = document.getElementById('stage');
+  const bgVideo = document.getElementById('bgVideo');
+  const nameInputEl = document.getElementById('li-name');
+  if (nameInputEl && bgVideo) {
+    nameInputEl.addEventListener('focus', () => {
+      document.body.classList.add('typing');
+      bgVideo.pause();
+    });
+    nameInputEl.addEventListener('blur', () => {
+      document.body.classList.remove('typing');
+      bgVideo.play().catch(() => {});
+    });
+  }
+  const isLowEnd = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+                    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sparkCount = isLowEnd ? 10 : 18;
+  const driftCount = isLowEnd ? 4 : 8;
+  for (let i = 0; i < sparkCount; i++) {
+    const s = document.createElement('div');
+    s.className = 'spark';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 2.8) + 's';
+    stage.appendChild(s);
+  }
+
+  // Partikel debu/energi melayang naik perlahan
+  for (let i = 0; i < driftCount; i++) {
+    const d = document.createElement('div');
+    d.className = 'drift';
+    d.style.left = Math.random() * 100 + '%';
+    d.style.animationDuration = (9 + Math.random() * 10) + 's';
+    d.style.animationDelay = (Math.random() * 10) + 's';
+    stage.appendChild(d);
+  }
+
+  // Animasi loading setelah nama dimasukkan & tombol Masuk ditekan
+  function handleLoginSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const nameInput = document.getElementById('li-name');
+
+    if (!nameInput.value.trim()) {
+      nameInput.focus();
+      return false;
+    }
+
+    const name = nameInput.value.trim();
+
+    // Simpan nama biar bisa dipakai di halaman berikutnya kalau perlu
+    try { localStorage.setItem('userName', name); } catch (err) {}
+
+    btn.disabled = true;
+    nameInput.disabled = true;
+    btn.classList.add('loading');
+    btn.querySelector('.btn-label').textContent = 'Memuat...';
+
+    // Tampilkan overlay loading black hole + teks "Vibe Coding"
+    const overlay = document.getElementById('loadingOverlay');
+    const sub = overlay.querySelector('.loading-sub');
+    sub.innerHTML = 'Menyiapkan ruang buat ' + escapeHtml(name) + '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('active');
+    });
+
+    // Pindah halaman setelah animasi loading berjalan mulus
+    setTimeout(() => {
+      window.location.href = 'beranda.html';
+    }, 1900);
+
+    return false;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>
